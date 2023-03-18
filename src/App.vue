@@ -1,15 +1,19 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <CardHand :cards="cards" />
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import CardHand from './components/CardHand.vue'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    CardHand
+  },
+  data() {
+    return {
+      cards: [15, 27, 39, 49, 55]
+    }
   }
 }
 </script>
