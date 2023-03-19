@@ -1,14 +1,20 @@
 <template>
     <div class="card-picker">
         <div id="played-card">
-            <Card :cardValue="playedCard" @click="unplayCard" />
+            <Card :cardValue="playedCard" />
         </div>
         <div class="cards">
-            <template v-for="(card, index) in cards" :key="index">
-                <Card v-if="selectedCard === card && !playedCard" class="selected" :cardValue="card"
-                    @click="playCard(card)" />
-                <Card v-else-if="playedCard !== card" class="unselected" :cardValue="card" @click="selectCard(card)" />
-                <Card v-else class="unselected" :cardValue="null" @click="selectCard(card)" />
+            <template v-if="!playedCard">
+                <template v-for="(card, index) in cards" :key="index">
+                    <Card v-if="selectedCard === card" class="selected" :cardValue="card" @click="playCard(card)" />
+                    <Card v-else class="unselected" :cardValue="card" @click="selectCard(card)" />
+                </template>
+            </template>
+            <template v-else>
+                <template v-for="(card, index) in cards" :key="index">
+                    <Card v-if="playedCard === card" :cardValue="null" />
+                    <Card v-else class="unselected inert" :cardValue="card" />
+                </template>
             </template>
         </div>
     </div>
@@ -40,9 +46,6 @@ export default {
         playCard(card) {
             this.playedCard = card;
         },
-        unplayCard() {
-            this.playedCard = null;
-        }
     },
 };
 </script>
@@ -76,7 +79,7 @@ export default {
     background-color: #999;
 }
 
-.unselected:not(.empty):hover {
+.unselected:not(.inert):hover {
     transform: translateY(-10px);
 }
 </style>

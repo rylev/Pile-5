@@ -1,6 +1,8 @@
 <template>
+  <div>Round: {{ round }}</div>
   <Piles :piles="piles" />
   <CardHand :cards="hand" />
+  <div>Score:{{ score }}</div>
 </template>
 
 <script>
@@ -15,7 +17,9 @@ export default {
   data() {
     return {
       hand: [15, 27, 39, 49, 55],
-      piles: [[1, 2, 3, 4, 5], [2], [3], [4]]
+      piles: [[1], [2], [3], [4]],
+      score: 0,
+      round: 1
     }
   }
 }
