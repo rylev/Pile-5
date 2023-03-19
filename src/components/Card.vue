@@ -12,25 +12,17 @@
 </template>
 
 <script>
+import { points } from '../points.js'
 export default {
   props: {
     cardValue: {
-      type: Number,
+      type: [Number, null],
       required: true,
     },
   },
   computed: {
     cardPoints() {
-      const cardValue = this.cardValue;
-      let pointValue;
-      if (cardValue % 11 === 0) {
-        pointValue = cardValue === 55 ? 6 : 5;
-      } else if (cardValue % 5 === 0) {
-        pointValue = cardValue % 10 === 0 ? 3 : 2;
-      } else {
-        pointValue = 1;
-      }
-      return pointValue;
+      return points(this.cardValue);
     },
   },
 };

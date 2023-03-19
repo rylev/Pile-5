@@ -1,18 +1,21 @@
 <template>
-  <CardHand :cards="cards" />
+  <Piles :piles="piles" />
+  <CardHand :cards="hand" />
 </template>
 
 <script>
 import CardHand from './components/CardHand.vue'
+import Piles from './components/Piles.vue'
 
 export default {
   name: 'App',
   components: {
-    CardHand
+    CardHand, Piles
   },
   data() {
     return {
-      cards: [15, 27, 39, 49, 55]
+      hand: [15, 27, 39, 49, 55],
+      piles: [[1, 2, 3, 4, 5], [2], [3], [4]]
     }
   }
 }
