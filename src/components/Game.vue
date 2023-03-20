@@ -1,8 +1,8 @@
 <template>
   <div>Round: {{ state.round }}</div>
-  <Piles :piles="piles" />
-  <CardHand :cards="hand" />
-  <div>Score:{{ state.score }}</div>
+  <Piles :piles="state.piles" />
+  <CardHand :cards="state.me.hand" />
+  <div>Score:{{ state.me.points }}</div>
 </template>
 
 <script>

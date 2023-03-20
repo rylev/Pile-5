@@ -43,6 +43,7 @@ export default {
         .then(json => {
           console.log('Success:', JSON.stringify(json));
           this.userId = json.user_id;
+          localStorage.setItem("user_id", this.userId);
         })
         .catch(error => {
           console.error('Error:', error);

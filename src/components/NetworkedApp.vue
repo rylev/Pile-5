@@ -1,6 +1,6 @@
 <template>
   <Game v-if="state && state.round > 0" :state="state" />
-  <Lobby v-else-if="state" :players="state.players" />
+  <Lobby v-else-if="state" :players="state.players" :readyToPlay="readyToPlay" />
 </template>
 
 <script>
@@ -48,6 +48,9 @@ export default {
     sendMessage(message) {
       this.socket.instance.send(JSON.stringify(message))
     },
+    readyToPlay() {
+      this.sendMessage({ event: "start_game" })
+    }
   },
 }
 </script>

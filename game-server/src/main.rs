@@ -194,6 +194,12 @@ async fn broadcast_state() {
 async fn handle_message(msg: Message) -> Result<(), String> {
     match msg {
         Message::QueryState => Ok(()),
+        Message::StartGame => {
+            let mut state = state().lock().await;
+            // TODO: check that round == Round(0)
+            state.round = Round(1);
+            Ok(())
+        }
     }
 }
 
@@ -202,6 +208,7 @@ async fn handle_message(msg: Message) -> Result<(), String> {
 #[serde(rename_all = "snake_case")]
 enum Message {
     QueryState,
+    StartGame,
 }
 
 #[derive(serde::Serialize, Debug)]
