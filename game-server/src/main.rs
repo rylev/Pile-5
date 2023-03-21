@@ -47,11 +47,11 @@ async fn join(
     ConnectInfo(who): ConnectInfo<SocketAddr>,
     Json(Name { name }): Json<Name>,
 ) -> impl IntoResponse {
-    println!("{who} joining...");
+    println!("{who} attempting to join...");
     let user_id = state().lock().await.join(name);
     match user_id {
         Ok(user_id) => {
-            println!("{who} joined with user_id: {user_id}");
+            println!("{who} joined lobby with user_id: {user_id}");
             broadcast_state().await;
             Json(serde_json::json! {
                 {
@@ -73,7 +73,7 @@ async fn ws_handler(
     Query(UserId { user_id }): Query<UserId>,
     ConnectInfo(who): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
-    println!("{who} connected with user_id '{user_id}'.");
+    println!("{who} connected to WebSocket with user_id '{user_id}'.");
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| handle_socket(socket, who, user_id))
@@ -86,7 +86,7 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, user_id: String) {
         let mut senders = senders().lock().await;
         senders.authenticated.insert(user_id.clone(), sender);
     }
-    broadcast_state().await;
+    send_state(&user_id).await;
     let recv = tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
             if process_message(msg, who, &user_id).await.is_break() {
@@ -177,37 +177,57 @@ async fn send_message(user_id: &str, msg: String) {
 async fn broadcast_state() {
     let state = state().lock().await;
     for (user_id, sender) in senders().lock().await.authenticated.iter_mut() {
-        let response = state.serialize_for_user(user_id);
-        if let Err(e) = sender
-            .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
-            .await
-        {
-            eprintln!("Error sending broadcast: {e}");
-        }
+        _send_state(&state, user_id, sender).await;
+    }
+}
+
+async fn send_state(user_id: &str) {
+    let state = state().lock().await;
+    if let Some(sender) = senders().lock().await.authenticated.get_mut(user_id) {
+        _send_state(&state, user_id, sender).await;
+    }
+}
+
+async fn _send_state(state: &State, user_id: &str, sender: &mut SplitSink<WebSocket, ws::Message>) {
+    let response = state.serialize_for_user(user_id);
+    if let Err(e) = sender
+        .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
+        .await
+    {
+        eprintln!("Error sending broadcast: {e}");
     }
 }
 
 async fn handle_message(msg: Message, user_id: &str) -> Result<(), String> {
-    match msg {
-        Message::QueryState => Ok(()),
-        Message::StartGame => {
-            let mut state = state().lock().await;
-            Ok(())
-        }
-        Message::PlayHand { number } => {
-            // TODO: check that round > Round(0)
-            let mut state = state().lock().await;
-
-            todo!()
-        }
+    let mut state = state().lock().await;
+    if state.get_player(user_id).is_none() {
+        return Err(format!("Player with id '{user_id}' does not exist"));
     }
+    match msg {
+        Message::Debug => {
+            println!("{state:#?}")
+        }
+        Message::StartGame => {
+            state.start_game().unwrap();
+        }
+        Message::PlayCard { card } => {
+            state.play_card(user_id, card).unwrap();
+        }
+        Message::SelectPile { pile_index } => {
+            state.select_pile(user_id, pile_index).unwrap();
+        }
+        Message::RestartGame => state.restart(),
+    }
+    Ok(())
 }
 
 #[derive(serde::Deserialize)]
 #[serde(tag = "event")]
 #[serde(rename_all = "snake_case")]
 enum Message {
-    QueryState,
+    Debug,
     StartGame,
-    PlayHand { number: u8 },
+    PlayCard { card: u8 },
+    SelectPile { pile_index: usize },
+    RestartGame,
 }
