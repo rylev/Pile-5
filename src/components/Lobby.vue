@@ -1,9 +1,13 @@
 <template>
-  <h1>Lobby</h1>
-  <template v-for="(player, index) in players" :key="index">
-    <div>{{ player }}</div>
-  </template>
-  <button @click="readyToPlay" :disabled='buttonIsDisabled'>Ready to Play</button>
+  <div class="heading">
+    <div class="title">Take 6 👾</div>
+  </div>
+  <div class="names">
+    <template v-for="(player, index) in players" :key="index">
+      <div class="player">{{ player }}</div>
+    </template>
+  </div>
+  <button @click="readyToPlay" :disabled='buttonIsDisabled' class="button">Ready to Play</button>
 </template>
 
 <script>
@@ -31,5 +35,52 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.heading {
+  background: #38A3A5;
+  padding: 10px;
+  width: 90%;
+  margin: 50px auto;
+  border-radius: 10px;
+}
+
+.title {
+  font-family: monospace;
+  color: #111111;
+  font-size: 4.0rem;
+}
+
+.button {
+
+  display: inline-block;
+  outline: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 14px 24px;
+  border: none;
+  background: #57CC99;
+  color: #111;
+
+  margin: 40px;
+}
+
+.player {
+  font-family: PT Sans;
+  color: #111111;
+  font-size: 2.0rem;
+  margin: 5px;
+}
+
+.names {
+  font-family: PT Sans;
+  background: #C7F9CC;
+  width: 50%;
+  margin: 0 auto;
+  border-radius: 5px;
+  padding: 20px
+}
+</style>
 

@@ -30,6 +30,7 @@ export default {
 
 <style scoped>
 .card {
+  background: #C7F9CC;
   width: 100px;
   height: 150px;
   border: 1px solid black;
@@ -40,11 +41,9 @@ export default {
   align-items: center;
   font-size: 24px;
   font-weight: bold;
-  background-color: white;
 }
 
 .card.empty {
-
   border: 1px dashed black;
 }
 

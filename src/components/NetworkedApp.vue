@@ -1,6 +1,8 @@
 <template>
   <Game v-if="state && state.state == 'game'" :points="state.points" :round="state.round.number" :hand="state.hand"
-    :piles="state.piles" :playedCard="state.round.played" :pickPile="pickPile" :sendPlayCard="sendPlayCard" />
+    :piles="state.piles" :playedCard="state.round.played" :pickPile="pickPile" :sendPlayCard="sendPlayCard"
+    :restartGame="startOver" />
+
   <Lobby v-else-if="state && state.state == 'lobby'" :players="state.players" :readyToPlay="readyToPlay" />
   <GameOver v-else-if="state && state.state === 'game_over'" :scores="state.players" :startOver="startOver" />
 </template>
@@ -81,7 +83,5 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
 }
 </style>

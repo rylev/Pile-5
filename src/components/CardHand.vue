@@ -59,10 +59,13 @@ export default {
 
 <style scoped>
 .card-picker {
-    width: 100%;
+    width: 90%;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     flex-direction: column;
+    background: #38A3A5;
+    padding: 20px;
 }
 
 .cards {
