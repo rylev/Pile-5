@@ -3,7 +3,7 @@
   <template v-for="(player, index) in players" :key="index">
     <div>{{ player }}</div>
   </template>
-  <button @click="readyToPlay">Ready to Play</button>
+  <button @click="readyToPlay" :disabled='buttonIsDisabled'>Ready to Play</button>
 </template>
 
 <script>
@@ -22,6 +22,11 @@ export default {
     return {
       name: null
     }
+  },
+  computed: {
+    buttonIsDisabled() {
+      return this.players.length < 2
+    },
   },
 };
 </script>

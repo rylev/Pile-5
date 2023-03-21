@@ -98,6 +98,7 @@ impl State {
                         "number": g.round(),
                         "state": turn_state,
                         "waiting_for": waiting_for,
+                        "played": g.played_card_for(user_id),
                     },
                     "piles": g.piles(),
                     "hand": hand,
@@ -527,6 +528,11 @@ impl Game {
     fn player_scores(&self) -> HashMap<String, u16> {
         self.players.player_scores()
     }
+
+    /// Get the card played in this round by this user if they've played
+    fn played_card_for(&self, user_id: &str) -> Option<u8> {
+        self.turn.played_card_for(user_id)
+    }
 }
 
 #[derive(Debug)]
@@ -545,6 +551,14 @@ enum Turn {
     CardPlay(CardPlay),
     /// A user must select a pile
     PileSelection(String, CardPlay),
+}
+impl Turn {
+    fn played_card_for(&self, user_id: &str) -> Option<u8> {
+        match self {
+            Turn::CardPlay(c) => c.played_card_for(user_id),
+            Turn::PileSelection(_, c) => c.played_card_for(user_id),
+        }
+    }
 }
 
 /// The cards played in a round
@@ -588,6 +602,12 @@ impl CardPlay {
     fn remove_card(&mut self, user_id: &str) -> Option<u8> {
         let i = self.0.iter().position(|(uid, _)| uid == user_id)?;
         Some(self.0.remove(i).1)
+    }
+
+    fn played_card_for(&self, user_id: &str) -> Option<u8> {
+        self.0
+            .iter()
+            .find_map(|(uid, card)| (uid == user_id).then(|| *card))
     }
 }
 

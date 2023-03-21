@@ -32,11 +32,18 @@ export default {
             type: Array,
             required: true,
         },
+        playedCard: {
+            type: [Number, null],
+            required: true
+        },
+        sendPlayCard: {
+            type: Function,
+            required: true
+        }
     },
     data() {
         return {
             selectedCard: this.cards[0],
-            playedCard: null
         };
     },
     methods: {
@@ -44,7 +51,7 @@ export default {
             this.selectedCard = card;
         },
         playCard(card) {
-            this.playedCard = card;
+            this.sendPlayCard(card)
         },
     },
 };

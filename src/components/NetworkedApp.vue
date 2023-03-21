@@ -1,6 +1,7 @@
 <template>
-  <Game v-if="state && state.round > 0" :state="state" />
-  <Lobby v-else-if="state" :players="state.players" :readyToPlay="readyToPlay" />
+  <Game v-if="state && state.state == 'game'" :points="state.points" :round="state.round.number" :hand="state.hand"
+    :piles="state.piles" :playedCard="state.round.played" :sendPlayCard="sendPlayCard" />
+  <Lobby v-else-if="state && state.state == 'lobby'" :players="state.players" :readyToPlay="readyToPlay" />
 </template>
 
 <script>
@@ -50,6 +51,9 @@ export default {
     },
     readyToPlay() {
       this.sendMessage({ event: "start_game" })
+    },
+    sendPlayCard(card) {
+      this.sendMessage({ event: "play_card", card })
     }
   },
 }

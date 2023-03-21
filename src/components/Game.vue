@@ -1,8 +1,8 @@
 <template>
-  <div>Round: {{ state.round }}</div>
-  <Piles :piles="state.piles" />
-  <CardHand :cards="state.me.hand" />
-  <div>Score:{{ state.me.points }}</div>
+  <div>Round: {{ round }}</div>
+  <Piles :piles="piles" />
+  <CardHand :cards="hand" :playedCard="playedCard" :sendPlayCard="sendPlayCard" />
+  <div>Score:{{ points }}</div>
 </template>
 
 <script>
@@ -15,10 +15,30 @@ export default {
     CardHand, Piles
   },
   props: {
-    state: {
-      type: Object,
+    points: {
+      type: Number,
       required: true,
     },
+    round: {
+      type: Number,
+      required: true,
+    },
+    playedCard: {
+      type: [Number, null],
+      required: true,
+    },
+    piles: {
+      type: Array,
+      required: true,
+    },
+    hand: {
+      type: Array,
+      required: true,
+    },
+    sendPlayCard: {
+      type: Function,
+      required: true,
+    }
   },
 }
 </script>
