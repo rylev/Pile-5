@@ -73,7 +73,7 @@ export default {
     display: flex;
     justify-content: center;
     position: relative;
-    width: 80%;
+    width: 90%;
 }
 
 .card {
