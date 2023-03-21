@@ -39,7 +39,7 @@ export default {
         sendPlayCard: {
             type: Function,
             required: true
-        }
+        },
     },
     data() {
         return {

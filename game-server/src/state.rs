@@ -66,9 +66,17 @@ impl State {
         match self {
             State::Lobby(_) => {}
             State::Game(g) => {
-                *self = State::Lobby(Lobby::new_with_players(g.player_mapping().clone()))
+                let mut table = Table::new();
+                let mut players = g.player_mapping().clone();
+                players.reset(table.deck_mut());
+                *self = State::Lobby(Lobby::new_from_parts(table, players))
             }
-            State::GameOver(p) => *self = State::Lobby(Lobby::new_with_players(p.clone())),
+            State::GameOver(p) => {
+                let mut table = Table::new();
+                let mut players = p.clone();
+                players.reset(table.deck_mut());
+                *self = State::Lobby(Lobby::new_from_parts(table, players));
+            }
         }
     }
 
@@ -107,6 +115,7 @@ impl State {
             }
             State::GameOver(p) => {
                 json!({
+                    "state": "game_over",
                     "players": p.player_scores()
                 })
             }
@@ -133,14 +142,11 @@ pub struct Lobby {
 
 impl Lobby {
     fn new() -> Self {
-        Self::new_with_players(PlayerMapping::new())
+        Self::new_from_parts(Table::new(), PlayerMapping::new())
     }
 
-    fn new_with_players(players: PlayerMapping) -> Lobby {
-        Self {
-            table: Table::new(),
-            players,
-        }
+    fn new_from_parts(table: Table, players: PlayerMapping) -> Lobby {
+        Self { table, players }
     }
 
     fn join(&mut self, name: String) -> String {
@@ -186,6 +192,10 @@ impl Table {
             deck,
         }
     }
+
+    fn deck_mut(&mut self) -> &mut Deck {
+        &mut self.deck
+    }
 }
 
 /// A mapping of IDs to player names
@@ -195,6 +205,12 @@ pub struct PlayerMapping(HashMap<String, Player>);
 impl PlayerMapping {
     fn new() -> PlayerMapping {
         PlayerMapping(HashMap::new())
+    }
+
+    fn reset(&mut self, deck: &mut Deck) {
+        for player in self.0.values_mut() {
+            *player = Player::new(std::mem::replace(&mut player.name, String::new()), deck)
+        }
     }
 
     fn players(&self) -> Vec<String> {
@@ -207,18 +223,8 @@ impl PlayerMapping {
         name.hash(&mut hasher);
         let key = hasher.finish();
 
-        let mut hand: Vec<_> = (0..10).into_iter().map(|_| deck.deal()).collect();
-        hand.sort();
-
         // TODO: handle if the player was already added
-        self.0.insert(
-            key.to_string(),
-            Player {
-                name,
-                points: 0,
-                hand,
-            },
-        );
+        self.0.insert(key.to_string(), Player::new(name, deck));
         key.to_string()
     }
 
@@ -244,8 +250,8 @@ impl PlayerMapping {
 
     fn player_scores(&self) -> HashMap<String, u16> {
         self.0
-            .iter()
-            .map(|(id, p)| (id.clone(), p.points))
+            .values()
+            .map(|p| (p.name.clone(), p.points))
             .collect()
     }
 }
@@ -255,6 +261,18 @@ pub struct Player {
     name: String,
     points: u16,
     hand: Vec<u8>,
+}
+
+impl Player {
+    fn new(name: String, deck: &mut Deck) -> Self {
+        let mut hand: Vec<_> = (0..10).into_iter().map(|_| deck.deal()).collect();
+        hand.sort();
+        Self {
+            name,
+            points: 0,
+            hand,
+        }
+    }
 }
 
 struct Deck {

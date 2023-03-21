@@ -1,7 +1,7 @@
 <template>
     <div class="card-piles">
         <div v-for="(pile, pileIndex) in piles" :key="pileIndex" class="bundle">
-            <div class="card-pile">
+            <div class="card-pile" @click="() => pickPile(pileIndex)">
                 <div v-for="(other, cardIndex) in pile.slice(0, pile.length - 1)" :key="cardIndex" class="under"
                     :style="{ position: 'absolute', 'z-index': cardIndex, top: `${(cardIndex * 5)}px` }">
                 </div>
@@ -21,6 +21,10 @@ export default {
     props: {
         piles: {
             type: Array,
+            required: true
+        },
+        pickPile: {
+            type: [Function, null],
             required: true
         }
     },

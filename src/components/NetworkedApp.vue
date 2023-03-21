@@ -1,18 +1,20 @@
 <template>
   <Game v-if="state && state.state == 'game'" :points="state.points" :round="state.round.number" :hand="state.hand"
-    :piles="state.piles" :playedCard="state.round.played" :sendPlayCard="sendPlayCard" />
+    :piles="state.piles" :playedCard="state.round.played" :pickPile="pickPile" :sendPlayCard="sendPlayCard" />
   <Lobby v-else-if="state && state.state == 'lobby'" :players="state.players" :readyToPlay="readyToPlay" />
+  <GameOver v-else-if="state && state.state === 'game_over'" :scores="state.players" :startOver="startOver" />
 </template>
 
 <script>
 import Game from './Game.vue'
 import Lobby from './Lobby.vue'
+import GameOver from './GameOver.vue'
 import { reactive } from 'vue'
 
 export default {
   name: 'NetworkedApp',
   components: {
-    Game, Lobby
+    Game, Lobby, GameOver
   },
   props: {
     userId: {
@@ -54,8 +56,22 @@ export default {
     },
     sendPlayCard(card) {
       this.sendMessage({ event: "play_card", card })
+    },
+    startOver() {
+      this.sendMessage({ event: "restart_game" })
     }
   },
+  computed: {
+    pickPile() {
+      if (this.state.round.state === 'select_pile') {
+        return (index) => {
+          this.sendMessage({ event: "select_pile", pile_index: index })
+        }
+      } else {
+        return null;
+      }
+    }
+  }
 }
 </script>
 

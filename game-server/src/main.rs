@@ -189,6 +189,9 @@ async fn send_state(user_id: &str) {
 }
 
 async fn _send_state(state: &State, user_id: &str, sender: &mut SplitSink<WebSocket, ws::Message>) {
+    if state.get_player(user_id).is_none() {
+        panic!("player with id '{user_id}' does not exist");
+    }
     let response = state.serialize_for_user(user_id);
     if let Err(e) = sender
         .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))

@@ -1,6 +1,7 @@
 <template>
   <div>Round: {{ round }}</div>
-  <Piles :piles="piles" />
+  <div v-if="pickPile">GOTTA PICK A PILE</div>
+  <Piles :piles="piles" :pickPile="pickPile" />
   <CardHand :cards="hand" :playedCard="playedCard" :sendPlayCard="sendPlayCard" />
   <div>Score:{{ points }}</div>
 </template>
@@ -33,6 +34,10 @@ export default {
     },
     hand: {
       type: Array,
+      required: true,
+    },
+    pickPile: {
+      type: [Function, null],
       required: true,
     },
     sendPlayCard: {
