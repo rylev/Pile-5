@@ -44,6 +44,7 @@ export default {
           console.log('Success:', JSON.stringify(json));
           this.userId = json.user_id;
           localStorage.setItem("user_id", this.userId);
+          localStorage.setItem("version", json.version);
         })
         .catch(error => {
           console.error('Error:', error);
@@ -52,8 +53,17 @@ export default {
     }
   },
   mounted() {
+    const version = localStorage.getItem("version");
     this.userId = localStorage.getItem("user_id");
-    console.log("Retrieved the following user_id from local storage: ", this.userId);
+    console.log("UserId: ", this.userId, " Version: ", version);
+    if (version && this.userId) {
+      fetch("/version").then(r => r.text()).then(v => {
+        if (v !== version) {
+          localStorage.clear();
+          this.userId = null;
+        }
+      })
+    }
   },
 }
 </script>

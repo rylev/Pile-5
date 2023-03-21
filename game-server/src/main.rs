@@ -28,6 +28,7 @@ async fn main() {
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
         .route("/join", post(join))
+        .route("/version", get(version))
         .route("/ws", get(ws_handler));
 
     // run it with hyper
@@ -43,6 +44,10 @@ struct Name {
     name: String,
 }
 
+async fn version() -> impl IntoResponse {
+    format!("{}", get_version())
+}
+
 async fn join(
     ConnectInfo(who): ConnectInfo<SocketAddr>,
     Json(Name { name }): Json<Name>,
@@ -55,7 +60,8 @@ async fn join(
             broadcast_state().await;
             Json(serde_json::json! {
                 {
-                    "user_id": user_id
+                    "user_id": user_id,
+                    "version": get_version()
                 }
             })
         }
@@ -233,4 +239,14 @@ enum Message {
     PlayCard { card: u8 },
     SelectPile { pile_index: usize },
     RestartGame,
+}
+
+fn get_version() -> u64 {
+    static STARTUP_TIME: OnceCell<u64> = OnceCell::new();
+    *STARTUP_TIME.get_or_init(|| {
+        std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    })
 }
