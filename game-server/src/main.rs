@@ -7,14 +7,16 @@ use axum::{Json, Router};
 use futures::stream::{SplitSink, StreamExt};
 use futures::SinkExt;
 use once_cell::sync::OnceCell;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
 
 use std::collections::HashMap;
 use std::ops::ControlFlow;
 use std::{net::SocketAddr, path::PathBuf};
+
+mod state;
+
+use state::State;
 
 #[tokio::main]
 async fn main() {
@@ -48,7 +50,7 @@ async fn join(
     println!("{who} joining...");
     let user_id = state().lock().await.join(name);
     match user_id {
-        Some(user_id) => {
+        Ok(user_id) => {
             println!("{who} joined with user_id: {user_id}");
             broadcast_state().await;
             Json(serde_json::json! {
@@ -57,7 +59,7 @@ async fn join(
                 }
             })
         }
-        None => todo!("Game already begun"),
+        Err(_) => todo!("Game already begun"),
     }
 }
 
@@ -95,9 +97,9 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, user_id: String) {
     recv.await.unwrap();
 }
 
-fn state() -> &'static Mutex<GameState> {
-    static STATE: OnceCell<Mutex<GameState>> = OnceCell::new();
-    STATE.get_or_init(|| Mutex::new(GameState::new()))
+fn state() -> &'static Mutex<State> {
+    static STATE: OnceCell<Mutex<State>> = OnceCell::new();
+    STATE.get_or_init(|| Mutex::new(State::new()))
 }
 
 /// helper to print contents of messages to stdout. Has special treatment for Close.
@@ -113,7 +115,7 @@ async fn process_message(msg: ws::Message, who: SocketAddr, user_id: &str) -> Co
                 }
             };
 
-            match handle_message(msg).await {
+            match handle_message(msg, user_id).await {
                 Ok(()) => broadcast_state().await,
                 Err(e) => send_message(user_id, e).await,
             }
@@ -175,13 +177,7 @@ async fn send_message(user_id: &str, msg: String) {
 async fn broadcast_state() {
     let state = state().lock().await;
     for (user_id, sender) in senders().lock().await.authenticated.iter_mut() {
-        let player_state = state.table.players.get(user_id).unwrap();
-        let response = serde_json::json! {{
-            "me": player_state,
-            "round": state.round,
-            "piles": state.table.piles,
-            "players": state.table.players()
-        }};
+        let response = state.serialize_for_user(user_id);
         if let Err(e) = sender
             .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
             .await
@@ -191,14 +187,18 @@ async fn broadcast_state() {
     }
 }
 
-async fn handle_message(msg: Message) -> Result<(), String> {
+async fn handle_message(msg: Message, user_id: &str) -> Result<(), String> {
     match msg {
         Message::QueryState => Ok(()),
         Message::StartGame => {
             let mut state = state().lock().await;
-            // TODO: check that round == Round(0)
-            state.round = Round(1);
             Ok(())
+        }
+        Message::PlayHand { number } => {
+            // TODO: check that round > Round(0)
+            let mut state = state().lock().await;
+
+            todo!()
         }
     }
 }
@@ -209,133 +209,5 @@ async fn handle_message(msg: Message) -> Result<(), String> {
 enum Message {
     QueryState,
     StartGame,
-}
-
-#[derive(serde::Serialize, Debug)]
-struct TableState {
-    #[serde(skip)]
-    deck: Deck,
-    #[serde(serialize_with = "serialize_players")]
-    players: HashMap<String, PlayerState>,
-    piles: [Pile; 4],
-}
-
-fn serialize_players<S>(
-    players: &HashMap<String, PlayerState>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    let players = players.values().map(|p| &p.name);
-    serializer.collect_seq(players)
-}
-
-impl TableState {
-    fn new() -> Self {
-        let mut deck = Deck::new();
-        Self {
-            players: HashMap::new(),
-            piles: [
-                Pile::new(deck.deal()),
-                Pile::new(deck.deal()),
-                Pile::new(deck.deal()),
-                Pile::new(deck.deal()),
-            ],
-            deck,
-        }
-    }
-
-    fn players(&self) -> Vec<String> {
-        self.players.values().map(|p| p.name.clone()).collect()
-    }
-
-    fn join(&mut self, name: String) -> String {
-        use std::hash::{Hash, Hasher};
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        name.hash(&mut hasher);
-        let key = hasher.finish();
-        let mut hand: Vec<_> = (0..10).into_iter().map(|_| self.deck.deal()).collect();
-        hand.sort();
-        // TODO: handle if the player was already added
-        self.players.insert(
-            key.to_string(),
-            PlayerState {
-                name,
-                points: 0,
-                hand,
-            },
-        );
-        key.to_string()
-    }
-}
-
-#[derive(serde::Serialize, Debug)]
-struct GameState {
-    table: TableState,
-    round: Round,
-}
-
-impl GameState {
-    pub fn new() -> Self {
-        let table = TableState::new();
-        Self {
-            table,
-            round: Round(0),
-        }
-    }
-
-    /// Returns `None` when the game has already begun
-    fn join(&mut self, name: String) -> Option<String> {
-        if self.round == Round(0) {
-            Some(self.table.join(name))
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(serde::Serialize, Debug)]
-struct PlayerState {
-    name: String,
-    points: u16,
-    hand: Vec<u8>,
-}
-
-#[derive(serde::Serialize, Debug, PartialEq, Eq)]
-struct Round(u8);
-
-#[derive(serde::Serialize, Debug)]
-struct Pile(Vec<u8>);
-
-impl Pile {
-    fn new(card: u8) -> Self {
-        Self(vec![card])
-    }
-}
-
-struct Deck {
-    cards: Vec<u8>,
-}
-
-impl std::fmt::Debug for Deck {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Deck")
-            .field("cards", &self.cards.len())
-            .finish()
-    }
-}
-
-impl Deck {
-    fn new() -> Self {
-        let mut cards: Vec<u8> = (1..=104u8).collect();
-        cards.shuffle(&mut thread_rng());
-        Self { cards }
-    }
-
-    fn deal(&mut self) -> u8 {
-        self.cards
-            .pop()
-            .expect("Deck should never be fulling dealt")
-    }
+    PlayHand { number: u8 },
 }
