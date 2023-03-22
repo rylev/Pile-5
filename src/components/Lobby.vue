@@ -1,17 +1,19 @@
 <template>
-  <div class="heading">
-    <div class="title">Take 6 👾</div>
-  </div>
+  <TitleHeading />
   <div class="names">
     <template v-for="(player, index) in players" :key="index">
       <div class="player">{{ player }}</div>
     </template>
   </div>
-  <button @click="readyToPlay" :disabled='buttonIsDisabled' class="button">Ready to Play</button>
+  <button @click="readyToPlay" :disabled='buttonIsDisabled' class="button">All Players Ready?</button>
 </template>
 
 <script>
+import TitleHeading from './TitleHeading.vue'
 export default {
+  components: {
+    TitleHeading
+  },
   props: {
     players: {
       type: Array,

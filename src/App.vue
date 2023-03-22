@@ -1,9 +1,10 @@
 <template>
   <template v-if="!userId">
-    <form @submit.prevent="handleSubmit">
-      <label for="my-input">Enter your name:</label>
+    <TitleHeading />
+    <form @submit.prevent="handleJoin">
+      <label for="my-input" id="label">Enter your name:</label>
       <input type="text" id="my-input" v-model="playerName">
-      <button type="submit">Submit</button>
+      <button type="submit" class="join">Join</button>
     </form>
   </template>
   <NetworkedApp v-else :userId="userId" />
@@ -11,11 +12,12 @@
 
 <script>
 import NetworkedApp from './components/NetworkedApp.vue'
+import TitleHeading from './components/TitleHeading.vue'
 
 export default {
   name: 'App',
   components: {
-    NetworkedApp
+    NetworkedApp, TitleHeading
   },
   data() {
     return {
@@ -23,9 +25,8 @@ export default {
       playerName: null
     }
   },
-
   methods: {
-    handleSubmit() {
+    handleJoin() {
       console.log(`Request for ${this.playerName} to join the game`);
       fetch("/join", {
         method: 'POST',
@@ -68,11 +69,42 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
+}
+
+.join {
+  display: inline-block;
+  outline: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  width: 100px;
+  border-radius: 8px;
+  padding: 14px;
+  border: none;
+  background: #57CC99;
+  color: #111;
+  margin: 10px;
+}
+
+input,
+label {
+  display: block;
+}
+
+#my-input {
+  margin: 5px auto;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+#label {
+  font-size: 2rem;
 }
 </style>

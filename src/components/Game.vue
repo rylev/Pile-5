@@ -1,5 +1,8 @@
 <template>
   <div class="game">
+    <button @click="restartGame" class="reset">
+      <img src="../assets/reset.svg" class="reset-icon" />
+    </button>
     <div class="table">
       <Piles :piles="piles" :pickPile="pickPile" />
       <div class="info">
@@ -11,7 +14,6 @@
       </div>
     </div>
     <CardHand :cards="hand" :playedCard="playedCard" :sendPlayCard="sendPlayCard" />
-    <button @click="restartGame" class="reset">Reset Game</button>
   </div>
 </template>
 
@@ -92,19 +94,25 @@ export default {
 }
 
 .reset {
-  width: 160px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   margin: 10px;
   display: inline-block;
-  outline: none;
   cursor: pointer;
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: 600;
-  border-radius: 8px;
-  padding: 14px 24px;
   border: none;
   background: #57CC99;
   color: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-self: end;
+  margin-bottom: -40px;
+}
+
+.reset-icon {
+  height: 15px;
+  width: 15px;
 }
 
 .alert {
