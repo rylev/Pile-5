@@ -60,6 +60,12 @@ export default {
       required: true,
     }
   },
+  watch: {
+    piles(newVal, oldVal) {
+      console.log(newVal, oldVal);
+
+    }
+  }
 }
 </script>
 
