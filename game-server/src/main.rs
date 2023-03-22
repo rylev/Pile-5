@@ -80,13 +80,24 @@ async fn ws_handler(
     ConnectInfo(who): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
     println!("{who} connected to WebSocket with user_id '{user_id}'.");
-    // finalize the upgrade process by returning upgrade callback.
-    // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| handle_socket(socket, who, user_id))
 }
 
 /// Actual websocket statemachine (one will be spawned per connection)
-async fn handle_socket(socket: WebSocket, who: SocketAddr, user_id: String) {
+async fn handle_socket(mut socket: WebSocket, who: SocketAddr, user_id: String) {
+    if state().lock().await.get_player(&user_id).is_none() {
+        println!(
+            "{who} connected with user_id '{user_id}', but that user_id is not in the game. Closing connection."
+        );
+        socket
+            .send(ws::Message::Close(Some(ws::CloseFrame {
+                code: ws::close_code::POLICY,
+                reason: "user_id not in game".into(),
+            })))
+            .await
+            .unwrap();
+        return;
+    }
     let (sender, mut receiver) = socket.split();
     {
         let mut senders = senders().lock().await;
@@ -195,9 +206,6 @@ async fn send_state(user_id: &str) {
 }
 
 async fn _send_state(state: &State, user_id: &str, sender: &mut SplitSink<WebSocket, ws::Message>) {
-    if state.get_player(user_id).is_none() {
-        panic!("player with id '{user_id}' does not exist");
-    }
     let response = state.serialize_for_user(user_id);
     if let Err(e) = sender
         .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))

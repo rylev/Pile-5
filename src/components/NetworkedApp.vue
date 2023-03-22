@@ -23,9 +23,17 @@ export default {
       type: String,
       required: true,
     },
+    authenticationFailed: {
+      type: Function,
+      required: true,
+    }
   },
   created() {
     const socket = new WebSocket(`ws://${location.host}/ws?user_id=${this.userId}`)
+
+    socket.onerror = () => {
+      console.log('WebSocket error:', error)
+    }
 
     socket.onopen = () => {
       console.log('WebSocket connected')
@@ -36,8 +44,12 @@ export default {
       this.state = JSON.parse(message.data);
     }
 
-    socket.onclose = () => {
-      console.log('WebSocket disconnected')
+    socket.onclose = (e) => {
+      if (e.code === 1008) {
+        console.log('WebSocket closed with error:', e.reason)
+        this.authenticationFailed();
+      }
+      console.log('WebSocket disconnected', e)
     }
 
     this.socket = reactive({

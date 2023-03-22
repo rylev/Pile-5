@@ -1,13 +1,14 @@
 <template>
   <template v-if="!userId">
     <TitleHeading />
+    <div v-if="error" class="error"> Error: {{ error }}</div>
     <form @submit.prevent="handleJoin">
       <label for="my-input" id="label">Enter your name:</label>
       <input type="text" id="my-input" v-model="playerName">
       <button type="submit" class="join">Join</button>
     </form>
   </template>
-  <NetworkedApp v-else :userId="userId" />
+  <NetworkedApp v-else :userId="userId" :authenticationFailed="authenicationFailed" />
 </template>
 
 <script>
@@ -22,10 +23,17 @@ export default {
   data() {
     return {
       userId: null,
-      playerName: null
+      playerName: null,
+      error: null
     }
   },
   methods: {
+    authenicationFailed() {
+      console.log("Authentication failed");
+      localStorage.clear();
+      this.userId = null;
+      this.error = "Authentication failed!";
+    },
     handleJoin() {
       console.log(`Request for ${this.playerName} to join the game`);
       fetch("/join", {
@@ -106,5 +114,13 @@ label {
 
 #label {
   font-size: 2rem;
+}
+
+.error {
+  color: red;
+  background-color: #f8d7da;
+  width: 40%;
+  margin: 0 auto;
+  border-radius: 5px;
 }
 </style>

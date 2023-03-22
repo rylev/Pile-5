@@ -53,7 +53,6 @@ export default {
 }
 
 .button {
-
   display: inline-block;
   outline: none;
   cursor: pointer;
@@ -67,6 +66,11 @@ export default {
   color: #111;
 
   margin: 40px;
+}
+
+.button:disabled {
+  background: #999;
+  cursor: not-allowed;
 }
 
 .player {
