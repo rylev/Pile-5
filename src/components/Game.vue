@@ -59,12 +59,6 @@ export default {
       type: Function,
       required: true,
     }
-  },
-  watch: {
-    piles(newVal, oldVal) {
-      console.log(newVal, oldVal);
-
-    }
   }
 }
 </script>

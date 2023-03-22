@@ -1,7 +1,7 @@
 <template>
     <div class="card-piles">
         <div v-for="(pile, pileIndex) in piles" :key="pileIndex" class="bundle">
-            <div class="pile-mate">
+            <div class="pile-mate" :class="{ changed: changed.includes(pileIndex) }">
                 <div class="card-pile" @click="() => pickPile(pileIndex)" :class="{ hoverable: !!pickPile }">
                     <div v-for="(other, cardIndex) in pile.slice(0, pile.length - 1)" :key="cardIndex" class="under"
                         :style="{ position: 'absolute', 'z-index': cardIndex, top: `${(cardIndex * 5)}px` }">
@@ -22,6 +22,7 @@
 <script>
 import Card from './Card.vue';
 import { points } from '../points.js'
+import { toRaw } from 'vue';
 
 export default {
     props: {
@@ -37,13 +38,45 @@ export default {
     components: {
         Card
     },
+    data() {
+        return {
+            changed: []
+        }
+    },
     computed: {
         pilePoints() {
             return this.piles.map(pile => {
                 return pile.map(value => points(value)).reduce((acc, n) => acc + n);
             })
         }
+    },
+    watch: {
+        piles(oldPiles, newPiles) {
+            let changed = [];
+            if (oldPiles && newPiles) {
+                let o = toRaw(oldPiles);
+                let n = toRaw(newPiles);
+                for (let i = 0; i < 4; i++) {
+                    if (!arraysEqual(o[i], n[i])) {
+                        changed.push(i);
+                    }
+                }
+            }
+            this.changed = changed;
+            setTimeout(() => {
+                this.changed = [];
+            }, 1000)
+        }
     }
+}
+function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
 }
 </script>
   
@@ -73,6 +106,8 @@ export default {
     width: 90%;
     height: 100%;
     padding: 5px;
+    transition: background-color 1s linear;
+    border-radius: 5px;
 }
 
 .card-pile {
@@ -105,6 +140,10 @@ export default {
 
 .hover:hover {
     color: #333;
+}
+
+.changed {
+    background-color: #38A3A5;
 }
 </style>
   
