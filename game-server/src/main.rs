@@ -16,7 +16,7 @@ use std::{net::SocketAddr, path::PathBuf};
 
 mod state;
 
-use state::State;
+use state::{PileIndex, State};
 
 #[tokio::main]
 async fn main() {
@@ -223,6 +223,7 @@ async fn handle_message(msg: Message, user_id: &str) -> Result<(), String> {
             state.play_card(user_id, card).unwrap();
         }
         Message::SelectPile { pile_index } => {
+            let pile_index = PileIndex::try_from(pile_index).expect("TODO: handle error");
             state.select_pile(user_id, pile_index).unwrap();
         }
         Message::RestartGame => state.restart(),

@@ -47,7 +47,7 @@ impl State {
         Ok(())
     }
 
-    pub fn select_pile(&mut self, user_id: &str, pile_index: usize) -> Result<(), StateError> {
+    pub fn select_pile(&mut self, user_id: &str, pile_index: PileIndex) -> Result<(), StateError> {
         match self {
             State::Lobby(_) => todo!("Handle error"),
             State::Game(g) => {
@@ -98,6 +98,7 @@ impl State {
                     Turn::PileSelection(_, _) => "other_select_pile",
                 };
                 let waiting_for = g.waiting_for();
+                let piles = g.piles().serialize();
 
                 json!({
                     "state": "game",
@@ -108,7 +109,7 @@ impl State {
                         "waiting_for": waiting_for,
                         "played": g.played_card_for(user_id),
                     },
-                    "piles": g.piles(),
+                    "piles": piles,
                     "hand": hand,
                     "points": points
                 })
@@ -302,16 +303,18 @@ impl Deck {
 /// The card piles
 ///
 /// The piles are always kept in sorted order
-#[derive(serde::Serialize, Debug)]
+#[derive(Debug)]
 struct Piles([Pile; 4]);
 
 impl Piles {
     fn new(deck: &mut Deck) -> Self {
+        let mut piles = [deck.deal(), deck.deal(), deck.deal(), deck.deal()];
+        piles.sort();
         let piles = [
-            Pile::new(deck.deal()),
-            Pile::new(deck.deal()),
-            Pile::new(deck.deal()),
-            Pile::new(deck.deal()),
+            Pile::new(PileIndex::Zero, piles[0]),
+            Pile::new(PileIndex::One, piles[1]),
+            Pile::new(PileIndex::Two, piles[2]),
+            Pile::new(PileIndex::Three, piles[3]),
         ];
         let mut s = Self(piles);
         s.sort();
@@ -329,8 +332,8 @@ impl Piles {
         self.pile_for_card(card).is_some()
     }
 
-    fn replace_pile(&mut self, pile_index: usize, card: u8) -> u16 {
-        let old = std::mem::replace(self.0.get_mut(pile_index).unwrap(), Pile::new(card));
+    fn replace_pile(&mut self, pile_index: PileIndex, card: u8) -> u16 {
+        let old = std::mem::replace(self.get_mut(pile_index), Pile::new(pile_index, card));
         self.sort();
         old.points()
     }
@@ -356,36 +359,74 @@ impl Piles {
             .map(|(_, p)| p)
             .last()
     }
+
+    fn get_mut(&mut self, pile_index: PileIndex) -> &mut Pile {
+        self.0.iter_mut().find(|p| p.index == pile_index).unwrap()
+    }
+
+    fn serialize(&self) -> Vec<&[u8]> {
+        let mut piles = self.0.iter().collect::<Vec<&Pile>>();
+        piles.sort_by(|p1, p2| p1.index.cmp(&p2.index));
+        piles.into_iter().map(|p| p.cards.as_slice()).collect()
+    }
 }
 
-#[derive(serde::Serialize, Debug)]
-struct Pile(Vec<u8>);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PileIndex {
+    Zero = 0,
+    One,
+    Two,
+    Three,
+}
+
+impl TryFrom<usize> for PileIndex {
+    type Error = ();
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Zero),
+            1 => Ok(Self::One),
+            2 => Ok(Self::Two),
+            3 => Ok(Self::Three),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Pile {
+    index: PileIndex,
+    cards: Vec<u8>,
+}
 
 impl Pile {
-    fn new(card: u8) -> Self {
-        Self(vec![card])
+    fn new(index: PileIndex, card: u8) -> Self {
+        Self {
+            index,
+            cards: vec![card],
+        }
     }
 
     fn top_card(&self) -> u8 {
-        *self.0.last().unwrap()
+        *self.cards.last().unwrap()
     }
 
     // Places the card in the pile
     //
     // Returns `Some` if pile was converted to points
     fn place(&mut self, card: u8) -> Option<u16> {
-        if self.0.len() == 5 {
-            let old = std::mem::replace(self, Pile::new(card));
+        if self.cards.len() == 5 {
+            let old = std::mem::replace(self, Pile::new(self.index, card));
             Some(old.points())
         } else {
-            self.0.push(card);
+            self.cards.push(card);
             None
         }
     }
 
     /// Given a pile calculate how much that pile's points are
     fn points(&self) -> u16 {
-        self.0
+        self.cards
             .iter()
             .map(|card| match (card % 11, card % 5) {
                 (0, _) if *card == 55 => 6,
@@ -399,7 +440,7 @@ impl Pile {
 
     #[cfg(test)]
     fn num(&self) -> usize {
-        self.0.len()
+        self.cards.len()
     }
 }
 
@@ -471,7 +512,11 @@ impl Game {
     /// Selects a pile for a player (turning that pile into points)
     ///
     /// Returns `Ok(true)` if the game is over
-    fn select_pile(&mut self, user_id: &str, pile_index: usize) -> Result<bool, PlacementError> {
+    fn select_pile(
+        &mut self,
+        user_id: &str,
+        pile_index: PileIndex,
+    ) -> Result<bool, PlacementError> {
         let (cp, card, points) = match &mut self.turn {
             Turn::PileSelection(i, cp) if i == user_id => {
                 let card = cp.remove_card(i).unwrap();
