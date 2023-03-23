@@ -10,7 +10,7 @@ use once_cell::sync::OnceCell;
 use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::ControlFlow;
 use std::{net::SocketAddr, path::PathBuf};
 
@@ -173,10 +173,15 @@ impl Senders {
             authenticated: HashMap::new(),
         }
     }
+
+    fn online_users(&self) -> HashSet<String> {
+        self.authenticated.keys().cloned().collect()
+    }
 }
 
 async fn remove_sender(user_id: &str) {
     senders().lock().await.authenticated.remove(user_id);
+    broadcast_state().await;
 }
 
 async fn send_message(user_id: &str, msg: String) {
@@ -193,20 +198,29 @@ async fn send_message(user_id: &str, msg: String) {
 
 async fn broadcast_state() {
     let state = state().lock().await;
-    for (user_id, sender) in senders().lock().await.authenticated.iter_mut() {
-        _send_state(&state, user_id, sender).await;
+    let mut senders = senders().lock().await;
+    let online_users = senders.online_users();
+    for (user_id, sender) in senders.authenticated.iter_mut() {
+        _send_state(&state, user_id, &online_users, sender).await;
     }
 }
 
 async fn send_state(user_id: &str) {
     let state = state().lock().await;
-    if let Some(sender) = senders().lock().await.authenticated.get_mut(user_id) {
-        _send_state(&state, user_id, sender).await;
+    let mut senders = senders().lock().await;
+    let online_users = senders.online_users();
+    if let Some(sender) = senders.authenticated.get_mut(user_id) {
+        _send_state(&state, user_id, &online_users, sender).await;
     }
 }
 
-async fn _send_state(state: &State, user_id: &str, sender: &mut SplitSink<WebSocket, ws::Message>) {
-    let response = state.serialize_for_user(user_id);
+async fn _send_state(
+    state: &State,
+    user_id: &str,
+    online_users: &HashSet<String>,
+    sender: &mut SplitSink<WebSocket, ws::Message>,
+) {
+    let response = state.serialize_for_user(user_id, online_users);
     if let Err(e) = sender
         .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
         .await

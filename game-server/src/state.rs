@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rand::{seq::SliceRandom, thread_rng};
 use serde_json::{json, Value};
@@ -80,7 +80,7 @@ impl State {
         }
     }
 
-    pub fn serialize_for_user(&self, user_id: &str) -> Value {
+    pub fn serialize_for_user(&self, user_id: &str, online_users: &HashSet<String>) -> Value {
         match self {
             State::Lobby(l) => {
                 let players = l.players();
@@ -100,7 +100,7 @@ impl State {
 
                 json!({
                     "state": "game",
-                    "players": g.serialize_players(user_id),
+                    "players": g.serialize_players(user_id, online_users),
                     "round": {
                         "number": g.round(),
                         "state": turn_state,
@@ -561,7 +561,11 @@ impl Game {
         self.players.get(user_id)
     }
 
-    fn serialize_players(&self, current_user_id: &str) -> HashMap<String, serde_json::Value> {
+    fn serialize_players(
+        &self,
+        current_user_id: &str,
+        online_users: &HashSet<String>,
+    ) -> HashMap<String, serde_json::Value> {
         self.players
             .players_iter()
             .map(|(id, player)| {
@@ -573,6 +577,7 @@ impl Game {
                         PlayedState::MustPlay => "must_play",
                         PlayedState::MustPickPile => "must_pick_pile",
                     },
+                    "online": online_users.contains(id),
                 });
                 (player.name.clone(), player_json)
             })

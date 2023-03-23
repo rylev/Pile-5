@@ -13,7 +13,8 @@
           <div>Round: {{ round }}</div>
           <div class="scores">
             <template v-for="(player, i) in playersSorted" :key="i">
-              <div :class="{ me: player.me }">{{ player.emoji }} {{ player.name }}: {{ player.points }}
+              <div :class="{ me: player.me }">{{ player.emoji }} {{ player.online }} {{ player.name }}: {{ player.points
+              }}
               </div>
             </template>
           </div>
@@ -85,6 +86,7 @@ export default {
           name,
           points: info.points,
           me: info.me,
+          online: info.online ? '🟢' : '🔴',
           emoji
         }
       })
