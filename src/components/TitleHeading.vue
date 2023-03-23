@@ -1,7 +1,7 @@
 
 <template>
     <div class="heading">
-        <div class="title">Take 6 👾</div>
+        <div class="title">Pile 5 👾</div>
     </div>
 </template>
 
