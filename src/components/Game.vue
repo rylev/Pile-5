@@ -1,4 +1,7 @@
 <template>
+  <Transition>
+    <div v-if="alert" class="alert">{{ alert }}</div>
+  </Transition>
   <div class="game">
     <button @click="restartGame" class="reset">
       <img src="../assets/reset.svg" class="reset-icon" />
@@ -8,9 +11,13 @@
       <div class="info">
         <div class="round">
           <div>Round: {{ round }}</div>
-          <div>Score:{{ points }}</div>
+          <div class="scores">
+            <template v-for="(player, i) in playersSorted" :key="i">
+              <div :class="{ me: player.me }">{{ player.emoji }} {{ player.name }}: {{ player.points }}
+              </div>
+            </template>
+          </div>
         </div>
-        <div v-if="pickPile" class="alert">Pick a tile!</div>
       </div>
     </div>
     <CardHand :cards="hand" :playedCard="playedCard" :sendPlayCard="sendPlayCard" />
@@ -27,8 +34,8 @@ export default {
     CardHand, Piles
   },
   props: {
-    points: {
-      type: Number,
+    players: {
+      type: Object,
       required: true,
     },
     round: {
@@ -59,7 +66,65 @@ export default {
       type: Function,
       required: true,
     }
-  }
+  },
+  data() {
+    return {
+      alert: null
+    }
+  },
+  computed: {
+    playersSorted() {
+      const players = Object.entries(this.players).map(([name, info]) => {
+        let emoji = '⏳';
+        if (info.played === "played") {
+          emoji = '✅';
+        } else if (info.played === 'must_pick_pile') {
+          emoji = '⭕';
+        }
+        return {
+          name,
+          points: info.points,
+          me: info.me,
+          emoji
+        }
+      })
+      players.sort((a, b) => {
+        if (a.me) {
+          return -Infinity;
+        }
+        b.points - a.points
+      })
+      return players
+    }
+  },
+  watch: {
+    players(newPlayers, oldPlayers) {
+      const findMe = p => Object.values(p).find(p => p.me)
+      const oldMe = findMe(oldPlayers);
+      const newMe = findMe(newPlayers);
+      if (oldMe.points !== newMe.points) {
+        const points = newMe.points - oldMe.points;
+        const s = points === 1 ? '' : 's';
+        const alert = `You got ${points} point${s}!`;
+        this.alert = alert;
+        setTimeout(() => {
+          if (alert === this.alert) {
+            this.alert = null;
+          }
+        }, 3000);
+      } else if (newMe.played === 'must_pick_pile') {
+        this.alert = 'You must pick a pile!';
+      }
+    },
+    round(newRound, oldRound) {
+      if (newRound !== oldRound) {
+        this.alert = 'New round!';
+        setTimeout(() => {
+          this.alert = null;
+        }, 3000);
+      }
+    }
+  },
 }
 </script>
 
@@ -121,5 +186,23 @@ export default {
   font-weight: bold;
   padding: 20px;
   font-size: 2rem;
+}
+
+.v-enter-active,
+.v-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+}
+
+.scores {
+  font-weight: normal;
+}
+
+.me {
+  font-weight: bold;
 }
 </style>

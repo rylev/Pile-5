@@ -1,5 +1,5 @@
 <template>
-  <Game v-if="state && state.state == 'game'" :points="state.points" :round="state.round.number" :hand="state.hand"
+  <Game v-if="state && state.state == 'game'" :players="state.players" :round="state.round.number" :hand="state.hand"
     :piles="state.piles" :playedCard="state.round.played" :pickPile="pickPile" :sendPlayCard="sendPlayCard"
     :restartGame="startOver" />
 
@@ -31,7 +31,7 @@ export default {
   created() {
     const socket = new WebSocket(`ws://${location.host}/ws?user_id=${this.userId}`)
 
-    socket.onerror = () => {
+    socket.onerror = (error) => {
       console.log('WebSocket error:', error)
     }
 

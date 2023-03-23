@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use rand::{seq::SliceRandom, thread_rng};
 use serde_json::{json, Value};
@@ -91,27 +91,23 @@ impl State {
             }
             State::Game(g) => {
                 let hand = g.hand_for(user_id).unwrap();
-                let points = g.points_for(user_id).unwrap();
                 let turn_state = match g.turn() {
                     Turn::CardPlay(_) => "play",
                     Turn::PileSelection(i, _) if i == user_id => "select_pile",
                     Turn::PileSelection(_, _) => "other_select_pile",
                 };
-                let waiting_for = g.waiting_for();
                 let piles = g.piles().serialize();
 
                 json!({
                     "state": "game",
-                    "players": g.player_scores(),
+                    "players": g.serialize_players(user_id),
                     "round": {
                         "number": g.round(),
                         "state": turn_state,
-                        "waiting_for": waiting_for,
                         "played": g.played_card_for(user_id),
                     },
                     "piles": piles,
                     "hand": hand,
-                    "points": points
                 })
             }
             State::GameOver(p) => {
@@ -241,12 +237,8 @@ impl PlayerMapping {
         self.0.get_mut(user_id)
     }
 
-    fn player_name(&self, user_id: &str) -> Option<&str> {
-        self.get(user_id).map(|p| p.name.as_str())
-    }
-
-    fn ids(&self) -> impl Iterator<Item = &str> {
-        self.0.keys().map(|k| k.as_str())
+    fn players_iter(&self) -> impl Iterator<Item = (&String, &Player)> {
+        self.0.iter()
     }
 
     fn player_scores(&self) -> HashMap<String, u16> {
@@ -565,37 +557,47 @@ impl Game {
         self.players.get(user_id).map(|p| p.hand.as_slice())
     }
 
-    fn waiting_for(&self) -> Vec<String> {
-        let player_name = |user_id| self.players.player_name(user_id).unwrap().to_owned();
-        match &self.turn {
-            Turn::CardPlay(p) => {
-                let all_players = self.players.ids();
-                let already_played_players = p.user_ids().collect::<HashSet<&str>>();
-                all_players
-                    .filter(|p| !already_played_players.contains(p))
-                    .map(player_name)
-                    .collect()
-            }
-            Turn::PileSelection(user_id, _) => vec![player_name(user_id)],
-        }
-    }
-
     fn get_player(&self, user_id: &str) -> Option<&Player> {
         self.players.get(user_id)
     }
 
-    fn points_for(&self, user_id: &str) -> Option<u16> {
-        self.players.get(user_id).map(|p| p.points)
-    }
-
-    fn player_scores(&self) -> HashMap<String, u16> {
-        self.players.player_scores()
+    fn serialize_players(&self, current_user_id: &str) -> HashMap<String, serde_json::Value> {
+        self.players
+            .players_iter()
+            .map(|(id, player)| {
+                let player_json = serde_json::json!({
+                    "points": player.points,
+                    "me": id == current_user_id,
+                    "played": match self.played_state(id) {
+                        PlayedState::Played => "played",
+                        PlayedState::MustPlay => "must_play",
+                        PlayedState::MustPickPile => "must_pick_pile",
+                    },
+                });
+                (player.name.clone(), player_json)
+            })
+            .collect()
     }
 
     /// Get the card played in this round by this user if they've played
     fn played_card_for(&self, user_id: &str) -> Option<u8> {
         self.turn.played_card_for(user_id)
     }
+
+    fn played_state(&self, user_id: &str) -> PlayedState {
+        match &self.turn {
+            Turn::CardPlay(p) if p.played_card_for(user_id).is_some() => PlayedState::Played,
+            Turn::CardPlay(_) => PlayedState::MustPlay,
+            Turn::PileSelection(i, _) if i == user_id => PlayedState::MustPickPile,
+            Turn::PileSelection(_, _) => PlayedState::Played,
+        }
+    }
+}
+
+enum PlayedState {
+    Played,
+    MustPlay,
+    MustPickPile,
 }
 
 #[derive(Debug)]
@@ -655,10 +657,6 @@ impl CardPlay {
         self.0
             .iter()
             .map(|(player_id, card)| (player_id.as_str(), *card))
-    }
-
-    fn user_ids(&self) -> impl Iterator<Item = &str> {
-        self.0.iter().map(|(user_id, _)| user_id.as_str())
     }
 
     /// Remove the user's card from the card play
