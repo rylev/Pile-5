@@ -7,13 +7,13 @@
             <template v-if="!playedCard">
                 <template v-for="(card, index) in cards" :key="index">
                     <Card v-if="selectedCard === card" class="selected" :cardValue="card" @click="playCard(card)" />
-                    <Card v-else class="unselected" :cardValue="card" @click="selectCard(card)" />
+                    <Card v-else class="unselected" :inert="true" :cardValue="card" @click="selectCard(card)" />
                 </template>
             </template>
             <template v-else>
                 <template v-for="(card, index) in cards" :key="index">
                     <Card v-if="playedCard === card" :cardValue="null" />
-                    <Card v-else class="unselected inert" :cardValue="card" />
+                    <Card v-else class="unselected inert" :inert="true" :cardValue="card" />
                 </template>
             </template>
         </div>

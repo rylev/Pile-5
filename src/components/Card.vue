@@ -1,11 +1,11 @@
 <template>
-  <div class="card" :class="{ empty: !cardValue }">
+  <div class="card" :class="{ empty: !cardValue, inert }">
     <template v-if="cardValue">
       <div class="mini-value top left">{{ cardValue }}</div>
       <div class="mini-value top right">{{ cardValue }}</div>
       <div class="mini-value bottom left">{{ cardValue }}</div>
       <div class="mini-value bottom right">{{ cardValue }}</div>
-      <div class="card-background" :class="`background-${cardPoints}`"></div>
+      <div class="card-background" :class="backgroundClass"></div>
       <div class="card-points">
         <template v-for="i in cardPoints" :key="i">
           <img src="../assets/atom.svg" alt="Atom Icon" class="mini-icon">
@@ -25,6 +25,18 @@ export default {
       type: [Number, null],
       required: true,
     },
+    inert: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  data() {
+    let backgroundClass = {};
+    backgroundClass[`background-${points(this.cardValue)}`] = !this.inert;
+    return {
+      backgroundClass
+    }
+
   },
   computed: {
     cardPoints() {
@@ -76,10 +88,14 @@ export default {
   margin-top: 5px;
   z-index: 100;
   width: 60%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .mini-icon {
-  margin: 3px;
+  display: block;
+  margin: 0px 3px;
   width: 14px;
   height: 14px;
 }
